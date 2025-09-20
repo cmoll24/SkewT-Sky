@@ -1,16 +1,25 @@
 // Fetch sounding data (moved from earlier example)
 async function FetchSoundingData(station, date) {
-  const baseUrl = "https://weather.uwyo.edu/wsgi/sounding";
+
+  const day = new Date(date);
+  const nextDay = new Date(day);
+  nextDay.setUTCDate(day.getUTCDate() + 1); // add 1 day
+
+  console.log(day.toISOString(), nextDay.toISOString())
+
   const params = new URLSearchParams({
-    datetime: `${date}%00:00:00`,
-    id: station,
-    type: "TEXT:CSV",
-    src: "BUFR"
+    station: station,
+    sts: `${date}T00:00:00Z`,
+    ets: `${date}T00:00:01Z`,
+    //dl: true  //dl = download CSV
   });
 
+  const url = `https://mesonet.agron.iastate.edu/cgi-bin/request/raob.py?${params.toString()}`;
+
+
   try {
-    console.log(`${baseUrl}?${params.toString()}`);
-    const response = await fetch(`${baseUrl}?${params.toString()}`);
+    console.log(url);
+    const response = await fetch(url);
 
     console.log(response);
 
@@ -21,10 +30,7 @@ async function FetchSoundingData(station, date) {
 
     const text = await response.text();
 
-    if (!text.toLowerCase().includes("time")) {
-      console.error("Invalid response (missing expected keyword).");
-      return null;
-    }
+    console.log(text);
 
     // Parse CSV using PapaParse
     const parsed = Papa.parse(text.trim(), {
@@ -37,7 +43,9 @@ async function FetchSoundingData(station, date) {
       return null;
     }
 
-    return data;
+    console.log(parsed);
+
+    return parsed.data;
   } catch (err) {
     console.error("Error fetching or parsing data:", err);
     return null;
@@ -55,8 +63,30 @@ document.getElementById('cloudForm').addEventListener('submit', async function(e
   const data = await FetchSoundingData(station, date);
 
   if (data) {
-    document.getElementById('result').textContent = JSON.stringify(data.slice(0, 10), null, 2);
-  } else {
-    document.getElementById('result').textContent = "Failed to fetch or parse data.";
-  }
+  const rows = data;
+
+  // Build table
+  let table = "<table border='1' cellspacing='0' cellpadding='5'><thead><tr>";
+
+  // Add headers from keys of first row
+  Object.keys(rows[0]).forEach(key => {
+    table += `<th>${key}</th>`;
+  });
+  table += "</tr></thead><tbody>";
+
+  rows.forEach(row => {
+    table += "<tr>";
+    Object.values(row).forEach(val => {
+      table += `<td>${val}</td>`;
+    });
+    table += "</tr>";
+  });
+
+  table += "</tbody></table>";
+
+  document.getElementById('result').innerHTML = table;
+} else {
+  document.getElementById('result').textContent = "Failed to fetch or parse data.";
+}
+
 });
