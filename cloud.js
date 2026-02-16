@@ -67,7 +67,16 @@ document.getElementById('cloudForm').addEventListener('submit', async function(e
   if (data) {
   const rows = data;
 
-  // Build table
+  renderTablesByTime(rows, 'validUTC', 'result');
+
+} else {
+  document.getElementById('result').textContent = "Failed to fetch or parse data.";
+}
+
+});
+
+//Build table
+function buildTable(rows) {
   let table = "<table border='1' cellspacing='0' cellpadding='5'><thead><tr>";
 
   // Add headers from keys of first row
@@ -84,11 +93,43 @@ document.getElementById('cloudForm').addEventListener('submit', async function(e
     table += "</tr>";
   });
 
-  table += "</tbody></table>";
-
-  document.getElementById('result').innerHTML = table;
-} else {
-  document.getElementById('result').textContent = "Failed to fetch or parse data.";
+  return table;
 }
 
-});
+function groupByTime(rows, timeKey) {
+  const groups = {};
+  rows.forEach(row => {
+    const time = row[timeKey];
+    if (!groups[time]) {
+      groups[time] = [];
+    }
+
+    groups[time].push(row);
+  });
+
+  return groups;
+}
+
+function renderTablesByTime(rows, timeKey, containerId) {
+
+  const container = document.getElementById(containerId);
+
+  if (!rows || rows.length === 0) {
+    container.textContent = "No data found.";
+    return;
+  }
+
+  const grouped = groupByTime(rows, timeKey);
+
+  let html = "";
+
+  Object.keys(grouped)
+    .sort() // chronological order
+    .forEach(time => {
+      html += buildTable(grouped[time]);
+      html += `<h3>${time}</h3>`;
+      html += "<br>";
+    });
+
+  container.innerHTML = html;
+}
