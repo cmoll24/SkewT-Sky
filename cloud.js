@@ -1,17 +1,19 @@
 // Fetch sounding data (moved from earlier example)
 async function FetchSoundingData(station, date) {
 
-  const day = new Date(date);
+  const day = new Date(date + "T00:00:00Z"); // Ensure it's treated as UTC
   const nextDay = new Date(day);
   nextDay.setUTCDate(day.getUTCDate() + 1); // add 1 day
 
-  console.log(day.toISOString(), nextDay.toISOString())
+  console.log(day.toISOString(), nextDay.toISOString());
 
   const params = new URLSearchParams({
     station: station,
-    sts: `${date}T00:00:00Z`,
-    ets: `${date}T00:00:01Z`,
-    //dl: true  //dl = download CSV
+    sts: day.toISOString(),
+    ets: nextDay.toISOString(),
+    //sts: `${date}T00:00:00Z`,
+    //ets: `${date}T00:00:01Z`,
+    //dl: true  //dl = download CSVS
   });
 
   const url = `https://mesonet.agron.iastate.edu/cgi-bin/request/raob.py?${params.toString()}`;
@@ -24,7 +26,7 @@ async function FetchSoundingData(station, date) {
     console.log(response);
 
     if (!response.ok) {
-      console.error(`Failed to fetch data. Status: ${response.status}`);
+      console.error(`Failed to fetch data. Status: HTTP ${response.status}`);
       return null;
     }
 
